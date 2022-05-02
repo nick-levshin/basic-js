@@ -14,31 +14,63 @@ const { NotImplementedError } = require('../extensions/index.js');
  *
  */
 function transform(arr) {
-  if (!Array.isArray(arr))
-    throw new Error("'arr' parameter must be an instance of the Array!");
-
-  const result = arr.slice().filter((item) => item);
-  result.forEach((item, i) => {
-    if (result[i] === '--double-next') {
-      typeof result[i + 1] === 'number' && result[i + 1]
-        ? result.splice(i, 1, result[i + 1])
-        : result.splice(i, 1);
-    } else if (result[i] === '--double-prev') {
-      typeof result[i - 1] === 'number' && result[i - 1]
-        ? result.splice(i, 1, result[i - 1])
-        : result.splice(i, 1);
-    } else if (result[i] === '--discard-next') {
-      typeof result[i + 1] === 'number' && result[i + 1]
-        ? result.splice(i, 2, null)
-        : result.splice(i, 1);
-    } else if (result[i] === '--discard-prev') {
-      typeof result[i - 1] === 'number' && result[i - 1]
-        ? result.splice(i - 1, 2, null)
-        : result.splice(i, 1);
+  if (!Array.isArray(arr)) {
+    throw new Error(`'arr' parameter must be an instance of the Array!`);
+  }
+  const transformedArr = [];
+  const tmpArr = [];
+  // const changes = { double: [], discard: [] };
+  for (let i = 0, k = 0; i < arr.length; i += 1) {
+    switch (arr[i]) {
+      case '--discard-next':
+        tmpArr[k] = { action: 'discard' };
+        break;
+      case '--discard-prev':
+        if (k - 1 >= 0 && tmpArr[k - 1].action === null) {
+          tmpArr[k - 1].action = 'discard';
+        }
+        if (k - 1 >= 0 && tmpArr[k - 1].action === 'double') {
+          tmpArr[k - 1].action = null;
+        }
+        break;
+      case '--double-next':
+        if (i < arr.length - 1 && tmpArr[k] === undefined) {
+          tmpArr[k] = { action: 'double' };
+        }
+        break;
+      case '--double-prev':
+        if (k - 1 >= 0 && tmpArr[k - 1].action !== 'discard') {
+          tmpArr[k - 1].action = 'double';
+        }
+        if (k - 1 >= 0 && tmpArr[k - 1].action === 'double') {
+          tmpArr[k - 1].action = 'triple';
+        }
+        break;
+      default:
+        if (tmpArr[k] === undefined) {
+          tmpArr[k] = { value: arr[i], action: null };
+        } else {
+          tmpArr[k].value = arr[i];
+        }
+        k += 1;
     }
-  });
-
-  return result.filter((item) => item);
+  }
+  for (const elem of tmpArr) {
+    switch (elem.action) {
+      case null:
+        transformedArr.push(elem.value);
+        break;
+      case 'discard':
+        break;
+      case 'double':
+        transformedArr.push(elem.value, elem.value);
+        break;
+      case 'triple':
+        transformedArr.push(elem.value, elem.value, elem.value);
+        break;
+    }
+  }
+  return transformedArr;
 }
 
 module.exports = {
